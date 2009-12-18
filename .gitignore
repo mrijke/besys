@@ -1,4 +1,9 @@
 *.o
 *.ko
 assignment1
-
+*.cmd
+.trivial*
+Module.*
+modules.order
+*.mod.c
+.tmp_versions
