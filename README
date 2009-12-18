@@ -1,0 +1,4 @@
+Assignments for the Lab of the Operating Systems course.
+
+Assignment 1: Task Queueing system made in C.
+Assignment 2: A Linux Kernel Module (LKM) that monitors the /tmp directory and logs all files that are opened.
