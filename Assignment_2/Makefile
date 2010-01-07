@@ -1,7 +1,7 @@
 obj-m += trivial_module.o
 obj-m += read_syscalltable.o
-obj-m += replace_syscalltable.o
-obj-m += procinfo.c
+obj-m += procinfo.o
+obj-m += replace_syscall.o
  
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
