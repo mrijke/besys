@@ -25,13 +25,13 @@ unsigned long **find_sys_call_table(void) {
 int start() {
         syscall_table = find_sys_call_table();
 	if (syscall_table != NULL) {
-		printk("I guess i got some kind of table");
+		printk("I guess i got some kind of table\n");
 	}
         return 0;
 }
 
 void stop() {
-        printk("Stopping this shizzle");
+        printk("Stopping this shizzle\n");
 }
 
 MODULE_LICENSE("Dual BSD/GPL");
