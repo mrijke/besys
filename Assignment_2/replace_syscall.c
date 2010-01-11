@@ -2,7 +2,7 @@
  * replace_syscall.c
  *
  *  Created on: Jan 9, 2010
- *      Author: Daniel van der Steeg
+ *      Author: Daniel van der Steeg + Maarten Rijke
  */
 #include <linux/init.h>
 #include <linux/module.h>
