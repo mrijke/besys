@@ -2,7 +2,7 @@
  * replace_syscall.c
  *
  *  Created on: Jan 9, 2010
- *      Author: Daniel van der Steeg + Maarten Rijke
+ *      Author: Daniel van der Steeg & Maarten Rijke
  */
 #include <linux/init.h>
 #include <linux/module.h>
@@ -87,10 +87,11 @@ int start(void)
  */
 asmlinkage int our_open(const char *pathname, int flags,int mode)
 {
-    int r;
+    int r,error;
     char *fullpath,*prevfullpath,*actionText;
     struct dentry *cur,*prev;
     fullpath = prevfullpath = NULL;
+    error = 0;
 
     //Checking flags
     if(flags & O_RDWR)
@@ -106,15 +107,15 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
     if(strncmp(pathname, "/tmp/",5) == 0){
         printk("[OSLAB] '%s' is %s %s!\n",current->comm,actionText,pathname);
         numberOfOpenedFiles++;
-      //if it is not absolute, it shouldn't start with a '/'
-      //so here come all the relative paths
-      //this check is mainly needed because 1 process might be opening only 1 file from /tmp/ 
-      //with 'tmp' as the PWD, but all files it opens are logged. This happens because the program
-      //uses absolute paths for the other files. 
+    //if it is not absolute, it shouldn't start with a '/'
+    //so here come all the relative paths
+    //this check is mainly needed because 1 process might be opening only 1 file from /tmp/ 
+    //with 'tmp' as the PWD, but all files it opens are logged. This happens because the program
+    //uses absolute paths for the other files. 
     } else if(strncmp(pathname, "/",1) != 0) 
     {            
         //get the working directory of the current task
-		    prev = cur = current->fs->pwd.dentry;
+	prev = cur = current->fs->pwd.dentry;
         //while we are not at the root
         while(strncmp(cur->d_name.name,"/",1) != 0){
             //get the parent
@@ -127,51 +128,54 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
         if(strncmp(prev->d_name.name,"tmp",3) == 0) {
             //reset these vars to the current working directory
             prev = cur = current->fs->pwd.dentry;
+            
+            fullpath = kmalloc(sizeof(char)*strlen(pathname),GFP_KERNEL);
+            if(fullpath == NULL)
+            	error = 1;
+            else
+            	strcpy(fullpath,pathname);
             //same loop, different content. Doing this for every 'open'-syscall would
             //make the system quite a lot slower + RAM usage would increase drastically
-            while(strncmp(cur->d_name.name,"/",1) != 0){
-                //Needs to be checked, if it is evaluated to TRUE it is the first loop
-                //and then there is no fullpath yet, so letting this code execute would
-                //very likely cause errors
-                 if(fullpath != NULL){
-                     prevfullpath = kmalloc(sizeof(char)*strlen(fullpath),GFP_KERNEL);
-                     if(prevfullpath != NULL){ //check for successful allocation
-                         strcpy(prevfullpath,fullpath);
-                         kfree(fullpath);
-                     }
+            while(strncmp(cur->d_name.name,"/",1) != 0 && error != 1){
+                 prevfullpath = kmalloc(sizeof(char)*strlen(fullpath),GFP_KERNEL);               
+                 if(prevfullpath == NULL){
+	             error = 1;
+	             break;
+	         }
+				         
+	         strcpy(prevfullpath,fullpath);
+                 kfree(fullpath);
+                 fullpath = kmalloc(sizeof(char)*(1+strlen(cur->d_name.name)+strlen(prevfullpath)),GFP_KERNEL);
+                 if(fullpath == NULL){
+                     error = 1;
+                     break;
                  }
-                 //Nearly same thing here. not doing this will probably result in problems
-                 if(prevfullpath!=NULL) // AKA first loop
-                     fullpath = kmalloc(sizeof(char)*(1+strlen(cur->d_name.name)+strlen(prevfullpath)),GFP_KERNEL);
-                 else // AKA second loop or further
-                     fullpath = kmalloc(sizeof(char)*(1+strlen(cur->d_name.name)),GFP_KERNEL);
+                 //add the '/' to separate the dir names
+		 strcpy(fullpath,"/");
+		 //append the dir name after the '/'
+		 strcat(fullpath,cur->d_name.name);
                  
-                 if(fullpath != NULL){ //check for successful allocation
-                      //add the '/' to separate the dir names
-                      strcpy(fullpath,"/");
-                      //append the dir name after the '/'
-                      strcat(fullpath,cur->d_name.name);
-                 }
-                 
-                 //if there's a prevfullpath, i.e. if this isn't the first loop
-                 //catenate it, and then free prevfullpath
-                 if(prevfullpath != NULL){
-                      strcat(fullpath,prevfullpath);
-                      kfree(prevfullpath);
-                 }
+		 strcat(fullpath,prevfullpath);
+                 kfree(prevfullpath);
                  
                  //get the parent directory
                  prev = cur;
                  cur = cur->d_parent;
             }
-            
-            //print the message
-            printk("[OSLAB] '%s' is %s %s/%s!\n",current->comm,actionText,fullpath,pathname);
-
-            kfree(fullpath);
-            //TODO: Should we also free actionText? Probably not right?
-
-            numberOfOpenedFiles++;
+            if(error == 1){
+            	if(fullpath != NULL)
+            		kfree(fullpath);
+            	if(prevfullpath != NULL)
+            		kfree(prevfullpath);
+            	printk("[OSLAB] There was an error while allocating memory!\n");
+            	printk("[OSLAB] Partial opening information:\n");
+            	printk("[OSLAB] '%s' is %s %s!\n",current->comm,actionText,pathname);
+            }else{
+		//print the message
+		printk("[OSLAB] '%s' is %s %s!\n",current->comm,actionText,fullpath);
+                kfree(fullpath);
+            }
+	    numberOfOpenedFiles++;
             
         }
 
