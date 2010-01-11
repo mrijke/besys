@@ -14,6 +14,7 @@
 #include <linux/string.h>
 #include <linux/path.h>
 #include <linux/proc_fs.h>
+#include <linux/fs_struct.h>
 
 //Method declarations
 asmlinkage int (*real_open) (const char* pathname, int flags, int mode);
@@ -72,7 +73,7 @@ int start(void)
     }else{
         //These are some options needed for the proc entry to work
         labosProc->read_proc = procfile_read;        //Link to the method that is called when /proc/labos is opened
-        labosProc->owner      = THIS_MODULE;            //Since this entry is used by a kernel mod, set it's ownership
+        //labosProc->owner      = THIS_MODULE;            //Since this entry is used by a kernel mod, set it's ownership
         labosProc->uid      = 0;                            //userid that is the owner of the entry
         labosProc->gid      = 0;                            //groupid
     }
@@ -90,7 +91,7 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
     char *fullpath,*prevfullpath,*actionText;
     struct dentry *cur,*prev;
     fullpath = prevfullpath = NULL;
-    
+
     //Checking flags
     if(flags & O_RDWR)
         actionText = "reading & writing in";
@@ -107,13 +108,13 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
         numberOfOpenedFiles++;
       //if it is not absolute, it shouldn't start with a '/'
       //so here come all the relative paths
-      //this check is mainly needed because 1 process might be opening only 1 file from /etc/ 
-      //with 'etc' as the PWD, but all files it opens are logged. This happens because the program
+      //this check is mainly needed because 1 process might be opening only 1 file from /tmp/ 
+      //with 'tmp' as the PWD, but all files it opens are logged. This happens because the program
       //uses absolute paths for the other files. 
     } else if(strncmp(pathname, "/",1) != 0) 
     {            
         //get the working directory of the current task
-        prev = cur = current->fs->pwd.dentry;
+		    prev = cur = current->fs->pwd.dentry;
         //while we are not at the root
         while(strncmp(cur->d_name.name,"/",1) != 0){
             //get the parent
@@ -182,7 +183,7 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
 }
 
 /* The read method for the proc-entry
- * It returns the number of files in /etc that have been opened.
+ * It returns the number of files in /tmp/ that have been opened.
  */
 int procfile_read(char *buffer, char **buffer_location, off_t offset, int buffer_length, int *eof, void *data)
 {
@@ -194,7 +195,7 @@ int procfile_read(char *buffer, char **buffer_location, off_t offset, int buffer
         ret  = 0;
     } else { 
         //offset = 0, so we print the message containing the requested info
-        ret = sprintf(buffer, "Number of files opened in /etc: %i\n",numberOfOpenedFiles);
+        ret = sprintf(buffer, "Number of files opened in /tmp/: %i\n",numberOfOpenedFiles);
     }
 
     return ret;
