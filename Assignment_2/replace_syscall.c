@@ -2,7 +2,7 @@
  * replace_syscall.c
  *
  *  Created on: Jan 9, 2010
- *      Author: Daniel van der Steeg & Maarten Rijke
+ *      Author: Daniel van der Steeg (s0209090) & Maarten Rijke (s0191221)
  */
 #include <linux/init.h>
 #include <linux/module.h>
@@ -102,7 +102,7 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
 
     //This only works with absolute paths
     if(strncmp(pathname, "/tmp/",5) == 0){
-        printk("[OSLAB] '%s' is %s %s!\n",current->comm,actionText,pathname);
+        printk("[OSLAB] '%s' is %s '%s'!\n",current->comm,actionText,pathname);
         numberOfOpenedFiles++;
 		}
     //if it is not absolute, it shouldn't start with a '/'
@@ -166,11 +166,11 @@ asmlinkage int our_open(const char *pathname, int flags,int mode)
 					   printk("[OSLAB] '%s' is %s %s!\n",current->comm,actionText,pathname);
 					 }else{
 					   //print the message
-				 	   printk("[OSLAB] '%s' is %s %s!\n",current->comm,actionText,fullpath);
+				 	   printk("[OSLAB] '%s' is %s '%s'!\n",current->comm,actionText,fullpath);
 						 kfree(fullpath);
 				 }
 				 numberOfOpenedFiles++;
-			 } // if(strncmp(prev->d_name.name,"tmp",3) == 0) 
+			 } // if(strncmp(prev->d_name.name,"tmp",3) == 0)
 
 	} // else if(strncmp(pathname, "/",1) != 0)
 

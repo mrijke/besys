@@ -1,6 +1,3 @@
-obj-m += trivial_module.o
-obj-m += read_syscalltable.o
-obj-m += procinfo.o
 obj-m += replace_syscall.o
  
 all:
